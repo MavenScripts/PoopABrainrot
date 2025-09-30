@@ -1,0 +1,125 @@
+-- Load Ash-Libs
+local GUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/BloodLetters/Ash-Libs/refs/heads/main/source.lua"))()
+
+-- Create main window
+GUI:CreateMain({
+    Name = "Poop a Brainrot",
+    title = "Poop a Brainrot GUI",
+    ToggleUI = "K",
+    WindowIcon = "home",
+    Theme = {
+        Background = Color3.fromRGB(25, 25, 35),
+        Secondary = Color3.fromRGB(35, 35, 45),
+        Accent = Color3.fromRGB(138, 43, 226),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(180, 180, 180),
+        Border = Color3.fromRGB(50, 50, 60),
+        NavBackground = Color3.fromRGB(20, 20, 30)
+    },
+    Blur = { Enable = false, value = 0.2 },
+    Config = { SettingsButton = false }
+})
+
+-- Services
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local loopConnection = nil
+
+-- AutoPoop functions
+local function startAutoPoop()
+    if loopConnection then return end
+    loopConnection = RunService.RenderStepped:Connect(function()
+        local startEvent = ReplicatedStorage:WaitForChild("StartPoopMinigameServer")
+        local brainEvent = ReplicatedStorage:WaitForChild("PoopBrainrotEvent")
+        local successEvent = ReplicatedStorage:WaitForChild("PoopSuccessEvent")
+        startEvent:FireServer()
+        for i = 1, 15 do
+            brainEvent:FireServer(2, 6)
+        end
+        successEvent:FireServer()
+    end)
+end
+
+local function stopAutoPoop()
+    if loopConnection then
+        loopConnection:Disconnect()
+        loopConnection = nil
+    end
+end
+
+-- Main Tab
+local mainTab = GUI:CreateTab("Main", "home")
+GUI:CreateSection({ parent = mainTab, text = "AutoPoop Section" })
+
+local autoPoopEnabled = false
+GUI:CreateToggle({
+    parent = mainTab,
+    text = "Start / Stop AutoPoop",
+    default = false,
+    callback = function(state)
+        if state and not autoPoopEnabled then
+            startAutoPoop()
+            autoPoopEnabled = true
+            GUI:CreateNotify({ title = "AutoPoop", description = "AutoPoop enabled!" })
+        elseif not state and autoPoopEnabled then
+            stopAutoPoop()
+            autoPoopEnabled = false
+            GUI:CreateNotify({ title = "AutoPoop", description = "AutoPoop disabled!" })
+        end
+    end
+})
+
+-- Teleports Tab
+local teleportTab = GUI:CreateTab("Teleports", "map")
+GUI:CreateSection({ parent = teleportTab, text = "Teleport Locations" })
+
+local teleportLocations = {
+    {Name = "Shop", Pos = Vector3.new(-68,5,-14), Icon = "store"},
+    {Name = "Potions Store", Pos = Vector3.new(-67,5,25), Icon = "potion"},
+    {Name = "Food Store", Pos = Vector3.new(-68,5,10), Icon = "food"},
+    {Name = "Sell", Pos = Vector3.new(-70,5,-1), Icon = "cash"},
+    {Name = "Luck Machine", Pos = Vector3.new(-64,4,-40), Icon = "star"},
+    {Name = "2x Size Zone", Pos = Vector3.new(2,3,-32), Icon = "expand"},
+    {Name = "Food Conveyor", Pos = Vector3.new(2,4,52), Icon = "conveyor"},
+    {Name = "Poop Area", Pos = Vector3.new(43,4,50), Icon = "bucket"},
+    {Name = "Leaderboards", Pos = Vector3.new(61,4,-1), Icon = "trophy"},
+}
+
+for _, tp in ipairs(teleportLocations) do
+    GUI:CreateButton({
+        parent = teleportTab,
+        text = tp.Name,
+        icon = tp.Icon,
+        callback = function()
+            if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                localPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(tp.Pos)
+                GUI:CreateNotify({ title = "Teleports", description = "Teleported to "..tp.Name })
+            end
+        end
+    })
+end
+
+-- Construction Site (coming soon)
+GUI:CreateButton({
+    parent = teleportTab,
+    text = "Construction Site",
+    icon = "construction",
+    callback = function()
+        GUI:CreateNotify({ title = "Teleports", description = "Coming Soon!" })
+    end
+})
+
+-- Credits Tab
+local creditsTab = GUI:CreateTab("Credits", "crown")
+GUI:CreateSection({ parent = creditsTab, text = "Author" })
+GUI:CreateParagraph({
+    parent = creditsTab,
+    text = "rrsmirnoff"
+})
+GUI:CreateSection({ parent = creditsTab, text = "Thanks To" })
+GUI:CreateParagraph({
+    parent = creditsTab,
+    text = "Zyletrophene"
+})
