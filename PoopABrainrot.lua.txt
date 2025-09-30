@@ -17,14 +17,14 @@ GUI:CreateMain({
         NavBackground = Color3.fromRGB(20, 20, 30)
     },
     Blur = { Enable = false, value = 0.2 },
-    Config = { SettingsButton = false }
+    Config = { SettingsButton = false } -- remove default settings
 })
 
 -- Services
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 local loopConnection = nil
 
 -- AutoPoop functions
@@ -72,54 +72,73 @@ GUI:CreateToggle({
 })
 
 -- Teleports Tab
-local teleportTab = GUI:CreateTab("Teleports", "map")
-GUI:CreateSection({ parent = teleportTab, text = "Teleport Locations" })
+local teleportsTab = GUI:CreateTab("Teleports", "map")
+GUI:CreateSection({ parent = teleportsTab, text = "Teleport Locations" })
+
+local function teleportTo(x, y, z)
+    LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(x, y, z))
+end
 
 local teleportLocations = {
-    {Name = "Shop", Pos = Vector3.new(-68,5,-14), Icon = "store"},
-    {Name = "Potions Store", Pos = Vector3.new(-67,5,25), Icon = "potion"},
-    {Name = "Food Store", Pos = Vector3.new(-68,5,10), Icon = "food"},
-    {Name = "Sell", Pos = Vector3.new(-70,5,-1), Icon = "cash"},
-    {Name = "Luck Machine", Pos = Vector3.new(-64,4,-40), Icon = "star"},
-    {Name = "2x Size Zone", Pos = Vector3.new(2,3,-32), Icon = "expand"},
-    {Name = "Food Conveyor", Pos = Vector3.new(2,4,52), Icon = "conveyor"},
-    {Name = "Poop Area", Pos = Vector3.new(43,4,50), Icon = "bucket"},
-    {Name = "Leaderboards", Pos = Vector3.new(61,4,-1), Icon = "trophy"},
+    {Name = "Sell", Pos = Vector3.new(-70, 5, -1)},
+    {Name = "Shop", Pos = Vector3.new(-68, 5, -14)},
+    {Name = "Potions Store", Pos = Vector3.new(-67, 5, 25)},
+    {Name = "Food Store", Pos = Vector3.new(-68, 5, 10)},
+    {Name = "Luck Machine", Pos = Vector3.new(-64, 4, -40)},
+    {Name = "2x Size Zone", Pos = Vector3.new(2, 3, -32)},
+    {Name = "Food Conveyor", Pos = Vector3.new(2, 4, 52)},
+    {Name = "Poop Area", Pos = Vector3.new(43, 4, 50)},
+    {Name = "Leaderboards", Pos = Vector3.new(61, 4, -1)},
+    {Name = "Construction Site (Coming Soon)", Pos = Vector3.new(43, 3, -38)}
 }
 
-for _, tp in ipairs(teleportLocations) do
+for _, tp in pairs(teleportLocations) do
     GUI:CreateButton({
-        parent = teleportTab,
+        parent = teleportsTab,
         text = tp.Name,
-        icon = tp.Icon,
         callback = function()
-            if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                localPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(tp.Pos)
-                GUI:CreateNotify({ title = "Teleports", description = "Teleported to "..tp.Name })
-            end
+            teleportTo(tp.Pos.X, tp.Pos.Y, tp.Pos.Z)
+            GUI:CreateNotify({ title = "Teleport", description = "Teleported to "..tp.Name })
         end
     })
 end
 
--- Construction Site (coming soon)
-GUI:CreateButton({
-    parent = teleportTab,
-    text = "Construction Site",
-    icon = "construction",
-    callback = function()
-        GUI:CreateNotify({ title = "Teleports", description = "Coming Soon!" })
-    end
-})
-
 -- Credits Tab
-local creditsTab = GUI:CreateTab("Credits", "crown")
+local creditsTab = GUI:CreateTab("Credits", "star")
+
+-- Author
 GUI:CreateSection({ parent = creditsTab, text = "Author" })
 GUI:CreateParagraph({
     parent = creditsTab,
     text = "rrsmirnoff"
 })
-GUI:CreateSection({ parent = creditsTab, text = "Thanks To" })
-GUI:CreateParagraph({
+
+-- Links
+GUI:CreateSection({ parent = creditsTab, text = "Links" })
+
+GUI:CreateButton({
     parent = creditsTab,
-    text = "Zyletrophene"
+    text = "Discord",
+    callback = function()
+        setclipboard("https://discord.gg/mgeXc8xZGw")
+        GUI:CreateNotify({ title = "Link Copied", description = "Discord invite copied to clipboard!" })
+    end
+})
+
+GUI:CreateButton({
+    parent = creditsTab,
+    text = "YouTube",
+    callback = function()
+        setclipboard("https://www.youtube.com/channel/UCrdD-Zsn7bP3kkCH91J_wAQ")
+        GUI:CreateNotify({ title = "Link Copied", description = "YouTube channel link copied to clipboard!" })
+    end
+})
+
+GUI:CreateButton({
+    parent = creditsTab,
+    text = "Roblox Group",
+    callback = function()
+        setclipboard("https://www.roblox.com/communities/34896499/puchu#!/about")
+        GUI:CreateNotify({ title = "Link Copied", description = "Roblox group link copied to clipboard!" })
+    end
 })
