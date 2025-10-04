@@ -24,71 +24,43 @@ GUI:CreateMain({
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local loopConnection = nil
 
--- Wait for LocalPlayer if nil (in case script runs very early)
-if not LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
+--[[ 
+📌 Webhook system
+No webhook hardcoded here. 
+If you want to send injection logs to Discord, set it in your executor before running:
+    getgenv().WEBHOOK = "https://discord.com/api/webhooks/XXXX/XXXX"
+]]
+local webhook_url = getgenv().WEBHOOK
 
--- ===== Discord webhook: send injection info (replace with your webhook) =====
-local webhook_url = "https://discord.com/api/webhooks/1424120056928931880/CjG9HIl5N2NwwZ0FzDP10r2YwBrf2P3D7IMVZPVhKxYwuWATHY5xn2ZBZ6gvKONmH3uS" -- <<--- put your webhook here
+local function sendWebhook(msg)
+    if not webhook_url then return end
+    local data = {
+        ["username"] = "Poop Script Logger",
+        ["embeds"] = {{
+            ["title"] = "Script Injected",
+            ["description"] = msg or (LocalPlayer.Name .. " injected Poop a Brainrot script!"),
+            ["color"] = 5814783
+        }}
+    }
+    local headers = { ["Content-Type"] = "application/json" }
+    local body = game:GetService("HttpService"):JSONEncode(data)
 
-local function send_injection_webhook()
-    if not webhook_url or webhook_url == "" then return end
     local ok, err = pcall(function()
-        local username = "Unknown"
-        local userid = 0
-        if LocalPlayer then
-            username = LocalPlayer.Name or "Unknown"
-            userid = LocalPlayer.UserId or 0
-        end
-
-        local placeName = tostring(game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or game.Name)
-        local placeId = tostring(game.PlaceId)
-        local jobId = tostring(game.JobId or "unknown")
-
-        local embed = {
-            title = "Script Injected",
-            description = string.format("**User:** %s\n**UserId:** %s\n**Game:** %s\n**PlaceId:** %s\n**JobId:** %s",
-                username, tostring(userid), placeName, placeId, jobId),
-            color = 5814783,
-            timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
-        }
-
-        local data = {
-            username = "Poop Script Logger",
-            embeds = { embed }
-        }
-
-        local body = HttpService:JSONEncode(data)
-        local headers = { ["Content-Type"] = "application/json" }
-
-        -- Executor-specific request functions
         if syn and syn.request then
-            syn.request({ Url = webhook_url, Method = "POST", Headers = headers, Body = body })
+            syn.request({Url = webhook_url, Method = "POST", Headers = headers, Body = body})
         elseif http_request then
-            http_request({ Url = webhook_url, Method = "POST", Headers = headers, Body = body })
+            http_request({Url = webhook_url, Method = "POST", Headers = headers, Body = body})
         elseif request then
-            request({ Url = webhook_url, Method = "POST", Headers = headers, Body = body })
-        elseif http and http.request then
-            http.request({ Url = webhook_url, Method = "POST", Headers = headers, Body = body })
-        else
-            -- No supported request function found; warn (can't reach Discord)
-            warn("No supported request function found for sending webhook. Add syn.request/http_request/request in your executor.")
+            request({Url = webhook_url, Method = "POST", Headers = headers, Body = body})
         end
     end)
     if not ok then
-        warn("Failed to send injection webhook: " .. tostring(err))
+        warn("Webhook failed: " .. tostring(err))
     end
 end
-
--- Try to send the webhook (pcall already inside function)
-send_injection_webhook()
--- ===== end webhook block =====
 
 -- AutoPoop functions
 local function startAutoPoop()
@@ -109,6 +81,10 @@ local function stopAutoPoop()
     if loopConnection then
         loopConnection:Disconnect()
         loopConnection = nil
+        -- Reset character when stopped
+        if LocalPlayer.Character then
+            LocalPlayer.Character:BreakJoints()
+        end
     end
 end
 
@@ -126,19 +102,12 @@ GUI:CreateToggle({
             startAutoPoop()
             autoPoopEnabled = true
             GUI:CreateNotify({ title = "AutoPoop", description = "AutoPoop enabled!" })
+            sendWebhook(LocalPlayer.Name .. " enabled AutoPoop.")
         elseif not state and autoPoopEnabled then
             stopAutoPoop()
             autoPoopEnabled = false
-            -- Reset character when AutoPoop is disabled
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                -- Try killing humanoid (normal respawn)
-                char.Humanoid:ChangeState(Enum.HumanoidStateType.Dead)
-            else
-                -- Fallback in case the game overrides humanoid death
-                pcall(function() LocalPlayer:LoadCharacter() end)
-            end
-            GUI:CreateNotify({ title = "AutoPoop", description = "AutoPoop disabled! Character reset." })
+            GUI:CreateNotify({ title = "AutoPoop", description = "AutoPoop disabled!" })
+            sendWebhook(LocalPlayer.Name .. " disabled AutoPoop.")
         end
     end
 })
@@ -148,19 +117,7 @@ local teleportsTab = GUI:CreateTab("Teleports", "map")
 GUI:CreateSection({ parent = teleportsTab, text = "Teleport Locations" })
 
 local function teleportTo(x, y, z)
-    -- Safely set CFrame if character exists and has primary part
-    if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-        LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(x, y, z))
-    else
-        -- Attempt to wait for char/primary part briefly
-        local char = LocalPlayer and LocalPlayer.Character
-        if char then
-            char:GetPropertyChangedSignal("PrimaryPart"):Wait()
-            if char.PrimaryPart then
-                char:SetPrimaryPartCFrame(CFrame.new(x, y, z))
-            end
-        end
-    end
+    LocalPlayer.Character:SetPrimaryPartCFrame(CFrame.new(x, y, z))
 end
 
 local teleportLocations = {
@@ -189,15 +146,8 @@ end
 
 -- Credits Tab
 local creditsTab = GUI:CreateTab("Credits", "star")
-
--- Author
 GUI:CreateSection({ parent = creditsTab, text = "Author" })
-GUI:CreateParagraph({
-    parent = creditsTab,
-    text = "rrsmirnoff"
-})
-
--- Links
+GUI:CreateParagraph({ parent = creditsTab, text = "rrsmirnoff" })
 GUI:CreateSection({ parent = creditsTab, text = "Links" })
 
 GUI:CreateButton({
